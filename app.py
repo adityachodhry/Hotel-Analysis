@@ -22,6 +22,11 @@ st.set_page_config(page_title="Hotel Analysis Tool", layout="wide")
 st.title("Hotel Analysis Tool")
 
 # Sidebar: Navigation
+# st.sidebar.image(
+#     "retvensservices_logo.jpg", 
+#     use_column_width=False, 
+#     width=100  # Set your desired width in pixels
+# )
 st.sidebar.header("Retvens Technologies")
 page = st.sidebar.radio(
     "Go to",
@@ -37,7 +42,8 @@ if page == "Home":
         - **Revenue Forecasting**: Analyze and forecast the revenue of your property.
         - **Price Prediction**: Predict future hotel prices using AI-driven models.
         
-        Use the navigation on the left-hand side to get started.
+        Empowering  
+        Owners To Become Hotelier With solutions that make your life easy..
         """
     )
 
