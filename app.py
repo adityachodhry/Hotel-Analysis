@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from pymongo import MongoClient
+from chat import chatbot_response  
 
 # MongoDB connection
 client = MongoClient("mongodb+srv://Retvens:JMdZt2hEPsqHuVQl@r-rate-shopper-cluster.nlstcxk.mongodb.net/")
@@ -22,18 +23,12 @@ st.set_page_config(page_title="Hotel Analysis Tool", layout="wide")
 st.title("Hotel Analysis Tool")
 
 # Sidebar: Navigation
-# st.sidebar.image(
-#     "retvensservices_logo.jpg", 
-#     use_column_width=False, 
-#     width=100  # Set your desired width in pixels
-# )
-
 st.sidebar.header("Retvens Technologies")
 page = st.sidebar.radio(
     "Go to",
-    ["Home", "Revenue Forecasting", "Price Prediction", "Chat With Me"]
+    ["Home", "Chat With Me"]
 )
-# hello
+
 if page == "Home":
     # Home page content
     st.header("Welcome to the Hotel Analysis Tool")
@@ -44,13 +39,14 @@ if page == "Home":
         - **Price Prediction**: Predict future hotel prices using AI-driven models.
         
         Empowering  
-        Owners To Become Hotelier With solutions that make your life easy..
+        Owners To Become Hoteliers With solutions that make your life easy..
         """
     )
 
 else:
-    # Common Sidebar Content for Analysis Pages
-    st.sidebar.header("Search Property")
+    # Chat With Me Page Content
+    st.header("Chat With Me")
+    st.write("Ask me anything about the hospitality industry, and I'll provide insights!")
 
     # Search field
     search_query = st.sidebar.text_input("Search Property", "")
@@ -69,28 +65,20 @@ else:
         selected_property = st.sidebar.selectbox("Choose a Property", filtered_options)
 
         if selected_property:
-            if page == "Revenue Forecasting":
-                # Revenue Forecasting Page Content
-                st.header("Revenue Forecasting")
-                st.write("Select a property to analyze and forecast the revenue.")
-                st.subheader(f"Selected Property: {selected_property}")
-                st.write("You have selected: **Revenue Forecasting**")
-                st.write("Additional analysis or forecasting functionality can be implemented here.")
+            # Display selected property
+            st.subheader(f"Selected Property: {selected_property}")
 
-            elif page == "Price Prediction":
-                # Price Prediction Page Content
-                st.header("Hotel Price Prediction")
-                st.write("Select a property to analyze and predict future prices using AI.")
-                st.subheader(f"Selected Property: {selected_property}")
-                st.write("You have selected: **Price Prediction**")
-                st.write("Additional analysis or prediction functionality can be implemented here.")
-            
-            elif page == "Chat With Me":
-                # Price Prediction Page Content
-                st.header("Chat With Me")
-                st.write("Select a property to analyze and predict future prices using AI.")
-                st.subheader(f"Selected Property: {selected_property}")
-                st.write("You have selected: **Price Prediction**")
-                st.write("Additional analysis or prediction functionality can be implemented here.")
+            # Chatbot interaction
+            st.write("Ask a question about the hospitality industry:")
+
+            # User input for chatbot
+            user_input = st.text_input("Type your question here:", placeholder="e.g., How can I increase hotel occupancy?")
+
+            # Generate chatbot response
+            if user_input:
+                response = chatbot_response(user_input)
+                st.subheader("Chatbot Response")
+                st.write(response)
+
     else:
         st.error("No active properties found in the database.")
