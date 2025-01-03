@@ -2,8 +2,6 @@ from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from datetime import datetime
 import os
-from bson import ObjectId
-
 
 app = Flask(__name__)
 
@@ -40,29 +38,60 @@ def get_rates():
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
 
-        # Query MongoDB for documents matching hId
-        documents = rateCollections.find({'hId': hId})
+        # Fetch property details and compsetIds
+        property_detail = verifiedproperties.find_one({"hId": hId}, {"compsetId": 1})
+        compset_ids = [
+            item['compsetId'] for item in property_detail.get('compsetId', [])
+            if 'compsetId' in item
+        ] if property_detail else []
 
-        result = []
+        # Combine hId and compset_ids for a single query
+        all_hIds = [hId] + compset_ids
+
+        # Query rates for all hIds within the date range
+        query = {
+            "hId": {"$in": all_hIds},
+            "rates.checkIn": {"$gte": start_date},
+            "rates.checkOut": {"$lte": end_date}
+        }
+        projection = {
+            "hId": 1,
+            "rates.roomID": 1,
+            "rates.checkIn": 1,
+            "rates.checkOut": 1,
+            "rates.roomName": 1,
+            "rates.roomPlan": 1,
+            "rates.price": 1
+        }
+        documents = rateCollections.find(query, projection)
+
+        # Process results
+        our_rates = []
+        compset_rates = []
+
         for document in documents:
             for rate in document.get('rates', []):
-                # Extract and format dates
-                check_in = rate['checkIn'] if isinstance(rate['checkIn'], datetime) else rate['checkIn']['$date']
-                check_out = rate['checkOut'] if isinstance(rate['checkOut'], datetime) else rate['checkOut']['$date']
+                check_in = rate['checkIn']
+                check_out = rate['checkOut']
+                formatted_rate = {
+                    "roomID": rate.get("roomID"),
+                    "checkIn": check_in.strftime('%Y-%m-%d'),
+                    "checkOut": check_out.strftime('%Y-%m-%d'),
+                    "roomName": rate.get("roomName"),
+                    "roomPlan": rate.get("roomPlan"),
+                    "price": rate.get("price")
+                }
+                if document['hId'] == hId:
+                    our_rates.append(formatted_rate)
+                else:
+                    formatted_rate["compsetHId"] = document['hId']
+                    compset_rates.append(formatted_rate)
 
-                # Filter by date range
-                if start_date <= check_in <= end_date:
-                    formatted_rate = {
-                        "roomID": rate.get("roomID"),
-                        "checkIn": check_in.strftime('%Y-%m-%d'),
-                        "checkOut": check_out.strftime('%Y-%m-%d'),
-                        "roomName": rate.get("roomName"),
-                        "roomPlan": rate.get("roomPlan"),
-                        "price": rate.get("price")
-                    }
-                    result.append(formatted_rate)
-
-        return jsonify(result)
+        # Return combined response
+        return jsonify({
+            "ourRates": our_rates,
+            "compsetRates": compset_rates
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
