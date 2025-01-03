@@ -74,7 +74,7 @@ def get_rates():
                 check_in = rate['checkIn']
                 check_out = rate['checkOut']
                 formatted_rate = {
-                    "roomID": rate.get("roomID"),
+                    # "roomID": rate.get("roomID"),
                     "checkIn": check_in.strftime('%Y-%m-%d'),
                     "checkOut": check_out.strftime('%Y-%m-%d'),
                     "roomName": rate.get("roomName"),
