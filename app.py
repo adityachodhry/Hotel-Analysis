@@ -27,12 +27,13 @@ st.title("Hotel Analysis Tool")
 #     use_column_width=False, 
 #     width=100  # Set your desired width in pixels
 # )
+
 st.sidebar.header("Retvens Technologies")
 page = st.sidebar.radio(
     "Go to",
-    ["Home", "Revenue Forecasting", "Price Prediction"]
+    ["Home", "Revenue Forecasting", "Price Prediction", "Chat With Me"]
 )
-
+# hello
 if page == "Home":
     # Home page content
     st.header("Welcome to the Hotel Analysis Tool")
@@ -79,6 +80,14 @@ else:
             elif page == "Price Prediction":
                 # Price Prediction Page Content
                 st.header("Hotel Price Prediction")
+                st.write("Select a property to analyze and predict future prices using AI.")
+                st.subheader(f"Selected Property: {selected_property}")
+                st.write("You have selected: **Price Prediction**")
+                st.write("Additional analysis or prediction functionality can be implemented here.")
+            
+            elif page == "Chat With Me":
+                # Price Prediction Page Content
+                st.header("Chat With Me")
                 st.write("Select a property to analyze and predict future prices using AI.")
                 st.subheader(f"Selected Property: {selected_property}")
                 st.write("You have selected: **Price Prediction**")
