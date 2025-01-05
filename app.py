@@ -18,18 +18,17 @@ def getAllProperties():
     properties = list(verifiedproperties.find(query, {"hId": 1, "propertyName": 1, "_id": 0}))
     return properties
 
-def fetch_rates(hId):
+def fetch_rates(hId, start_date, end_date):
     """
-    Fetch rates for the next 10 days using the getRates API.
+    Fetch rates for a given date range using the getRates API.
     Args:
         hId (int): Hotel ID for which rates are to be fetched.
+        start_date (str): Start date in 'YYYY-MM-DD' format.
+        end_date (str): End date in 'YYYY-MM-DD' format.
     Returns:
         dict: Parsed JSON response from the API.
     """
     api_url = "http://127.0.0.1:5000/get-rates"  # Replace with deployed URL
-    today = datetime.date.today()
-    start_date = today.strftime('%Y-%m-%d')
-    end_date = (today + datetime.timedelta(days=10)).strftime('%Y-%m-%d')
     params = {"hId": hId, "start_date": start_date, "end_date": end_date}
 
     try:
@@ -104,8 +103,23 @@ else:
                 st.write(response)
 
                 if extra.get("fetch_rates"):
-                    # Call fetch_rates to get rates
-                    rates = fetch_rates(hId)
+                    # Extract date range from user input
+                    today = datetime.date.today()
+                    if "next 10 days" in user_input.lower():
+                        start_date = today.strftime('%Y-%m-%d')
+                        end_date = (today + datetime.timedelta(days=10)).strftime('%Y-%m-%d')
+                    elif "next 30 days" in user_input.lower():
+                        start_date = today.strftime('%Y-%m-%d')
+                        end_date = (today + datetime.timedelta(days=30)).strftime('%Y-%m-%d')
+                    elif "past 20 days" in user_input.lower():
+                        start_date = (today - datetime.timedelta(days=20)).strftime('%Y-%m-%d')
+                        end_date = today.strftime('%Y-%m-%d')
+                    else:
+                        start_date = today.strftime('%Y-%m-%d')
+                        end_date = (today + datetime.timedelta(days=10)).strftime('%Y-%m-%d')
+
+                    # Fetch rates for the selected property
+                    rates = fetch_rates(hId, start_date, end_date)
                     if "error" in rates:
                         st.error(rates["error"])
                     else:
@@ -113,16 +127,72 @@ else:
                         our_rates = rates.get("ourRates", [])
                         compset_rates = rates.get("compsetRates", [])
 
-                        # Display our rates
+                        # Display our rates with room name and room plan filters
                         if our_rates:
                             st.subheader("Our Rates")
                             our_rates_df = pd.DataFrame(our_rates)
-                            st.dataframe(our_rates_df)
+
+                            # Add 'dates' column
+                            all_dates = pd.date_range(start=start_date, end=end_date).strftime('%Y-%m-%d').tolist()
+
+                            # Create a new column 'dates' for all rows
+                            dates_expanded = []
+                            for _, row in our_rates_df.iterrows():
+                                check_in = datetime.datetime.strptime(row['checkIn'], '%Y-%m-%d').date()
+                                check_out = datetime.datetime.strptime(row['checkOut'], '%Y-%m-%d').date()
+                                
+                                # Loop through each date in the range and create corresponding rows
+                                dates_expanded.extend([check_in + datetime.timedelta(days=i) for i in range((check_out - check_in).days)])
+
+                            # Add dates column
+                            our_rates_df['dates'] = dates_expanded
+
+                            # Remove 'checkIn' and 'checkOut' columns
+                            our_rates_df = our_rates_df.drop(columns=['checkIn', 'checkOut'])
+
+                            # Reorder columns to make 'dates' the first column
+                            our_rates_df = our_rates_df[['dates'] + [col for col in our_rates_df.columns if col != 'dates']]
+
+                            # Dropdown filters for roomName and roomPlan
+                            room_names = our_rates_df['roomName'].unique()
+                            room_plans = our_rates_df['roomPlan'].unique()
+
+                            selected_room_name = st.selectbox("Select Room Name", room_names, key="room_name")
+                            selected_room_plan = st.selectbox("Select Room Plan", room_plans, key="room_plan")
+
+                            # Filter data based on selections
+                            filtered_our_rates = our_rates_df[
+                                (our_rates_df['roomName'] == selected_room_name) &
+                                (our_rates_df['roomPlan'] == selected_room_plan)
+                            ]
+
+                            st.dataframe(filtered_our_rates)
 
                         # Display compset rates grouped by compsetHId
                         if compset_rates:
                             st.subheader("Compset Rates")
                             compset_rates_df = pd.DataFrame(compset_rates)
+
+                            # Add 'dates' column to compset rates
+                            all_dates = pd.date_range(start=start_date, end=end_date).strftime('%Y-%m-%d').tolist()
+
+                            # Create a new column 'dates' for all rows
+                            compset_dates_expanded = []
+                            for _, row in compset_rates_df.iterrows():
+                                check_in = datetime.datetime.strptime(row['checkIn'], '%Y-%m-%d').date()
+                                check_out = datetime.datetime.strptime(row['checkOut'], '%Y-%m-%d').date()
+                                
+                                # Loop through each date in the range and create corresponding rows
+                                compset_dates_expanded.extend([check_in + datetime.timedelta(days=i) for i in range((check_out - check_in).days)])
+
+                            # Add dates column
+                            compset_rates_df['dates'] = compset_dates_expanded
+
+                            # Remove 'checkIn' and 'checkOut' columns
+                            compset_rates_df = compset_rates_df.drop(columns=['checkIn', 'checkOut'])
+
+                            # Reorder columns to make 'dates' the first column
+                            compset_rates_df = compset_rates_df[['dates'] + [col for col in compset_rates_df.columns if col != 'dates']]
 
                             # Group by compsetHId
                             for compset_id, group in compset_rates_df.groupby("compsetHId"):
@@ -130,9 +200,29 @@ else:
                                 compset_property = verifiedproperties.find_one({"hId": compset_id}, {"propertyName": 1})
                                 compset_name = compset_property.get("propertyName", f"Unknown Property ({compset_id})")
 
-                                # Display table for each compset
+                                # Dropdown filters for roomName and roomPlan in compset rates
+                                compset_room_names = group['roomName'].unique()
+                                compset_room_plans = group['roomPlan'].unique()
+
+                                selected_compset_room_name = st.selectbox(
+                                    f"Select Room Name for {compset_name}", compset_room_names, key=f"compset_room_name_{compset_id}"
+                                )
+                                selected_compset_room_plan = st.selectbox(
+                                    f"Select Room Plan for {compset_name}", compset_room_plans, key=f"compset_room_plan_{compset_id}"
+                                )
+
+                                # Filter data based on selections
+                                filtered_compset_rates = group[
+                                    (group['roomName'] == selected_compset_room_name) &
+                                    (group['roomPlan'] == selected_compset_room_plan)
+                                ]
+
+                                # Drop 'compsetHId' column from display
+                                filtered_compset_rates = filtered_compset_rates.drop(columns=["compsetHId"])
+
+                                # Display filtered table
                                 st.subheader(f"Compset: {compset_name}")
-                                st.dataframe(group.drop(columns=["compsetHId"]))  # Drop compsetHId from display
+                                st.dataframe(filtered_compset_rates)
 
     else:
         st.error("No active properties found in the database.")
