@@ -226,3 +226,6 @@ else:
 
     else:
         st.error("No active properties found in the database.")
+
+
+
