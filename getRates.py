@@ -35,8 +35,8 @@ def get_rates():
             return jsonify({"error": "hId must be an integer"}), 400
 
         # Convert the date strings to datetime objects
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        start_date = parse_date(start_date_str)
+        end_date = parse_date(end_date_str)
 
         # Fetch property details and compsetIds
         property_detail = verifiedproperties.find_one({"hId": hId}, {"compsetId": 1})
@@ -51,8 +51,12 @@ def get_rates():
         # Query rates for all hIds within the date range
         query = {
             "hId": {"$in": all_hIds},
-            "rates.checkIn": {"$gte": start_date},
-            "rates.checkOut": {"$lte": end_date}
+            "rates": {
+                "$elemMatch": {
+                    "checkIn": {"$lte": end_date},
+                    "checkOut": {"$gte": start_date}
+                }
+            }
         }
         projection = {
             "hId": 1,
@@ -73,19 +77,20 @@ def get_rates():
             for rate in document.get('rates', []):
                 check_in = rate['checkIn']
                 check_out = rate['checkOut']
-                formatted_rate = {
-                    # "roomID": rate.get("roomID"),
-                    "checkIn": check_in.strftime('%Y-%m-%d'),
-                    "checkOut": check_out.strftime('%Y-%m-%d'),
-                    "roomName": rate.get("roomName"),
-                    "roomPlan": rate.get("roomPlan"),
-                    "price": rate.get("price")
-                }
-                if document['hId'] == hId:
-                    our_rates.append(formatted_rate)
-                else:
-                    formatted_rate["compsetHId"] = document['hId']
-                    compset_rates.append(formatted_rate)
+                # Filter rates within the specific date range
+                if start_date <= check_in <= end_date or start_date <= check_out <= end_date:
+                    formatted_rate = {
+                        "checkIn": check_in.strftime('%Y-%m-%d'),
+                        "checkOut": check_out.strftime('%Y-%m-%d'),
+                        "roomName": rate.get("roomName"),
+                        "roomPlan": rate.get("roomPlan"),
+                        "price": rate.get("price")
+                    }
+                    if document['hId'] == hId:
+                        our_rates.append(formatted_rate)
+                    else:
+                        formatted_rate["compsetHId"] = document['hId']
+                        compset_rates.append(formatted_rate)
 
         # Return combined response
         return jsonify({
@@ -95,6 +100,7 @@ def get_rates():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
