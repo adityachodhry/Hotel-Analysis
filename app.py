@@ -70,7 +70,7 @@ else:
 
             st.subheader(f"Selected Property: {selected_property}")
 
-            user_input = st.text_input("Type your question here:", placeholder="e.g., Show rates for next 10 days.")
+            user_input = st.text_input("Type your question here:", placeholder="e.g., Show rates for the next 10 days.")
             if user_input:
                 response, extra = chatbot_response(user_input, selected_property=selected_property)
                 st.subheader("Chatbot Response")
