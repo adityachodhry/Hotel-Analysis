@@ -34,11 +34,10 @@ client = MongoClient("mongodb+srv://Retvens:JMdZt2hEPsqHuVQl@r-rate-shopper-clus
 db = client['ratex']
 collection = db['channelmanagers']
 rCollections = db['reservations']
-rateCollections = db['otarates']
 verifiedproperties = db['verifiedproperties']
 
 # Fetch data for a specific hId
-hId = 20079
+hId = 53005
 
 # Initialize data structure
 all_reservations_data = []
@@ -67,6 +66,7 @@ for allReservations in reservations:
         "reservationNumber": allReservations.get('reservationNumber'),
         "source": allReservations.get('source'),
         "sourceSegment": allReservations.get('sourceSegment'),
+        "bookingDate": allReservations.get('bookingDetails', {}).get('createdOn'),
         "arrivalDate": allReservations.get('bookingDetails', {}).get('arrivalDate'),
         "departureDate": allReservations.get('bookingDetails', {}).get('departureDate'),
         "totalNights": allReservations.get('bookingDetails', {}).get('totalNights'),
@@ -95,28 +95,3 @@ with open("reservations.json", "w") as json_file:
     json.dump(all_reservations_data, json_file, indent=4, cls=CustomJSONEncoder)
 
 print("Reservations data saved to 'reservations.json'.")
-
-
-# # Fetch OTA rates for ourHid
-# if ratesFiedl:
-#     ourHid = ratesFiedl.get('hId')
-#     print(f"ourHid: {ourHid}")
-#     rates_ourHid = rateCollections.find({"hId": ourHid})
-#     all_rates_data["ourHidRates"] = [serialize_document(rate) for rate in rates_ourHid]
-
-# # Fetch OTA rates for compsetIds
-# if propertyDetail:
-#     compset = propertyDetail.get('compsetId', [])
-#     compset_ids = [item['compsetId'] for item in compset if 'compsetId' in item]
-#     print(f"compsetIds: {compset_ids}")
-
-#     for compset_id in compset_ids:
-#         rates_compset = rateCollections.find({"hId": compset_id})
-#         all_rates_data["compsetRates"].extend([serialize_document(rate) for rate in rates_compset])
-
-# # Save all rates data to JSON
-# with open("all_rates_data.json", "w") as json_file:
-#     json.dump(all_rates_data, json_file, indent=4)
-
-# # Print combined data for inspection
-# print(json.dumps(all_rates_data, indent=4))
