@@ -29,10 +29,10 @@ def fetch_rates(hId, start_date, end_date):
         return {"error": str(e)}
 
 # Streamlit page configuration
-st.set_page_config(page_title="Hotel Analysis Tool", layout="wide")
+st.set_page_config(page_title="Hotel Analysis", layout="wide")
 
 # App Title
-st.title("Hotel Analysis Tool")
+st.title("Hotel Analysis")
 
 # Sidebar: Navigation
 st.sidebar.header("Retvens Technologies")
